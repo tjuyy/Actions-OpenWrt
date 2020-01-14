@@ -15,7 +15,7 @@ on:
     branches: 
       - master
     paths:
-      - '.config'
+      - 'k2p.config'
 #  schedule:
 #    - cron: 0 8 * * 5
 #  watch:
@@ -60,7 +60,7 @@ jobs:
 
     - name: Load custom configuration
       env:
-        CONFIG_FILE: '.config'
+        CONFIG_FILE: 'k2p.config'
         DIY_SH: 'diy.sh'
       run: |
         [ -e files ] && mv files openwrt/files
@@ -98,16 +98,24 @@ jobs:
         name: OpenWrt_bin
         path: openwrt/bin
 
-    - name: Organize files
+    - name: Remove packages
       if: always()
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        echo "::set-env name=FIRMWARE::$(pwd)"
+        echo "::set-env name=FIRMWARE::$(pwd)"   
 
-    - name: Upload firmware
+    - name: Upload firmware to Upload Artifact
       uses: actions/upload-artifact@master
       if: always()
       with:
         name: OpenWrt_firmware
         path: ${{ env.FIRMWARE }}
+        
+    - name: Release files
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: openwrt/bin/targets/ramips/mt7621/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASES_DEPLOY_TOKEN }}
